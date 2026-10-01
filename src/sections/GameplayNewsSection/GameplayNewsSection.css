@@ -1,0 +1,128 @@
+.gameplay-news-section {
+  position: relative;
+  z-index: 21;
+  min-height: max(100svh, calc(100vw * 3082 / 2880));
+  padding-top: calc(100svh - 12vw);
+  padding-bottom: 8vw;
+  background: transparent;
+  color: #fff;
+  font-family: 'OMORI', monospace;
+}
+
+.gameplay-panels {
+  scroll-margin-top: -80px;
+  display: grid;
+  grid-template-columns: repeat(100, minmax(0, 1fr));
+  row-gap: 3.9vw;
+  grid-auto-flow: dense;
+}
+
+.gameplay-panel {
+  box-sizing: border-box;
+  width: calc(100% - 6px);
+  min-height: 19.7vw;
+  min-width: 0;
+  padding: 0.9vw;
+  border: 2px solid #fff;
+  outline: 2px solid #000;
+  background: #000;
+}
+
+.gameplay-panel:nth-child(1) { grid-column: 10 / span 30; }
+.gameplay-panel:nth-child(2) { grid-column: 43 / span 30; }
+.gameplay-panel:nth-child(3) { grid-column: 32 / span 30; }
+.gameplay-panel:nth-child(4) { grid-column: 66 / span 30; }
+.gameplay-media { position: relative; width: 100%; aspect-ratio: 292 / 130; overflow: hidden; background: #000; filter: grayscale(1); }
+.gameplay-media.is-playing { filter: none; }
+.gameplay-media img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.gameplay-panel h2 { margin: 0.55vw 0 0; font-size: clamp(22px, 2.5vw, 42px); font-weight: 400; line-height: 1; }
+.gameplay-panel p { margin: 0.2vw 0 0; font-size: clamp(15px, 1.3vw, 23px); line-height: 1; }
+
+.news-stage {
+  display: grid;
+  align-items: center;
+  padding-block: clamp(116px, 15vw, 205px);
+  min-height: 100svh;
+  margin-top: 3vw;
+}
+
+.news-carousel {
+  position: relative;
+  width: 68%;
+  margin: 0 auto;
+  padding: 1vw;
+  box-sizing: border-box;
+  border: 2px solid #000;
+  outline: 2px solid #fff;
+  background: #fff;
+  color: #000;
+  min-height: 19.5vw;
+}
+
+.news-wind-chime {
+  position: absolute;
+  right: -24px;
+  top: calc(100% - 48px);
+  width: clamp(80px, 8vw, 112px);
+  height: auto;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.news-window { overflow: hidden; }
+.news-slide { display: grid; grid-template-columns: 43% minmax(0, 1fr); gap: 4.3%; align-items: center; }
+.news-media { display: block; width: 100%; aspect-ratio: 370 / 197; object-fit: cover; background: #d9d9d9; }
+.news-copy { min-width: 0; padding: 1vw 1.2vw 1vw 0; }
+.news-copy h2 { margin: 0 0 1.6vw; font-size: clamp(25px, 3vw, 46px); line-height: 1; font-weight: 400; }
+.news-copy p { margin: 0; max-width: 36ch; font-size: clamp(18px, 1.9vw, 30px); line-height: 0.95; }
+.news-copy a { color: inherit; text-underline-offset: 3px; }
+.news-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+.news-arrow img { width: 60px; height: auto; image-rendering: pixelated; animation: news-hand-bounce 850ms cubic-bezier(0.45, 0, 0.55, 1) infinite alternate; animation-play-state: paused; }
+.news-carousel[data-visible] .news-arrow img { animation-play-state: running; }
+@keyframes news-hand-bounce {
+  from { translate: -7px 0; }
+  to { translate: 7px 0; }
+}
+.news-arrow-previous img { transform: scaleX(-1); }
+.news-arrow-previous { right: calc(100% + 0.8vw); }
+.news-arrow-next { left: calc(100% + 0.8vw); }
+.news-arrow:focus-visible { outline: 2px solid #fff; outline-offset: 2px; background: #000; }
+.news-copy a:focus-visible { outline: 2px solid #000; outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .news-arrow:hover { opacity: 0.7; } }
+
+@media (max-width: 640px) {
+  .gameplay-news-section { padding: calc(100svh - 96px) 0 64px; }
+  .gameplay-panels { scroll-margin-top: -40px; }
+  .gameplay-panels { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 0 24px; }
+  .gameplay-panel:nth-child(n) { grid-column: auto; width: 100%; padding: 8px; }
+  .gameplay-panel h2 { margin-top: 8px; font-size: 25px; }
+  .gameplay-panel p { margin-top: 4px; font-size: 18px; line-height: 1.05; }
+  .news-stage { margin-top: 24px; }
+  .news-carousel { width: calc(100% - 144px); padding: 10px; }
+  .news-slide { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .news-copy { padding: 0 4px 12px; }
+  .news-copy h2 { margin-bottom: 18px; font-size: 32px; }
+  .news-copy p { max-width: none; font-size: 23px; line-height: 1.05; }
+  .news-wind-chime { right: -16px; top: calc(100% - 34px); width: 80px; }
+  .news-arrow-previous { right: 100%; }
+  .news-arrow-next { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .news-arrow { transition: none; }
+  .news-arrow img { animation: none; }
+}

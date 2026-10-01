@@ -1,0 +1,100 @@
+@font-face {
+  font-family: 'OMORI';
+  src: url('../../assets/fonts/omorifont.ttf') format('truetype');
+  font-display: swap;
+}
+
+.about-section {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  background: #000;
+  padding: 24px;
+}
+
+.about-section.has-characters {
+  display: block;
+  padding: 0;
+}
+
+.about-section.is-preloading {
+  position: fixed;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.about-frames {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #000 center / cover no-repeat;
+  animation: omori-frames 1200ms step-end 2 forwards;
+}
+
+@keyframes omori-frames {
+  0% { background-image: url('../../assets/about-section/omori-frame1.png'); }
+  33.333333% { background-image: url('../../assets/about-section/omori-frame2.png'); }
+  66.666667%, 100% { background-image: url('../../assets/about-section/omori-frame3.png'); }
+}
+
+.about-dialogue {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(67vw, 1100px);
+  min-height: 0;
+  aspect-ratio: 3828 / 792;
+  padding: 4% 4.3%;
+  border: 0;
+  background: url('../../assets/about-section/dialogueBox.png') center / 100% 100% no-repeat;
+  color: #fff;
+  font-family: 'OMORI', monospace;
+  font-size: clamp(24px, 2.2vw, 36px);
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  animation: dialogue-enter 400ms 400ms ease-in-out both;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.about-dialogue:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: 7px;
+}
+
+.about-dialogue-unrevealed { visibility: hidden; }
+
+.about-dialogue-arrow {
+  position: absolute;
+  right: 3.5%;
+  bottom: 9%;
+  width: 4.5%;
+  image-rendering: pixelated;
+  animation: dialogue-arrow 850ms cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+
+@keyframes dialogue-enter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dialogue-arrow {
+  from { transform: translateX(-7px); }
+  to { transform: translateX(7px); }
+}
+
+@media (max-width: 640px) {
+  .about-dialogue {
+    width: 100%;
+    min-height: 220px;
+    aspect-ratio: auto;
+    padding: 28px 24px 48px;
+    font-size: 26px;
+  }
+  .about-dialogue-arrow { width: 36px; right: 8%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-dialogue, .about-dialogue-arrow { animation: none; }
+}

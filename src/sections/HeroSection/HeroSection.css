@@ -1,0 +1,122 @@
+.hero-scroll {
+  min-height: 250svh;
+  background: white;
+}
+
+.hero-stage {
+  --hero-size: min(80vw, 45svh, 480px);
+
+  position: sticky;
+  top: 0;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+.hero-camera {
+  display: grid;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  place-items: center;
+  background: white;
+  transform-origin:
+    calc(50% - var(--hero-size) / 4)
+    calc(65svh - var(--hero-size) / 2 - clamp(18px, 1.7vw, 26px));
+}
+
+.hero-scroll.is-entering .hero-camera {
+  animation:
+    camera-center 0.4s cubic-bezier(0.42, 0, 0.58, 1) forwards,
+    camera-enter 0.4s cubic-bezier(0.9, 0, 1, 0) forwards;
+}
+
+.hero-scroll.is-entering .hero-door {
+  animation: none;
+  background-position: 100% 100%;
+}
+
+.hero-scroll.is-entered .hero-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: black;
+}
+
+.hero-scroll.is-entered .hero-camera {
+  display: none;
+}
+
+.hero-logo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(28vw, 32svh, 322px);
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.hero-composition {
+  position: relative;
+  width: var(--hero-size);
+  transform: translateY(15svh);
+}
+
+.hero-whitespace {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hero-door {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(100% + clamp(18px, 1.7vw, 26px));
+  left: 13%;
+  width: 14.5%;
+  aspect-ratio: 400 / 699;
+  background: url("../../assets/hero-section/hero-door.png") 0 0 / 300% 200% no-repeat;
+  clip-path: inset(0 1.5% 0.8584% 2.25%);
+  image-rendering: pixelated;
+  animation: door-frames step-end both;
+  animation-timeline: scroll(root block);
+  animation-range: 0px 100svh;
+}
+
+@keyframes door-frames {
+  0% { background-position: 0 0; }
+  20% { background-position: 50% 0; }
+  40% { background-position: 100% 0; }
+  60% { background-position: 0 100%; }
+  80% { background-position: 50% 100%; }
+  100% { background-position: 100% 100%; }
+}
+
+@keyframes camera-enter {
+  0% { transform: scale(1); }
+  100% { transform: scale(70); }
+}
+
+@keyframes camera-center {
+  0% { translate: 0 0; }
+  100% {
+    translate:
+      calc(var(--hero-size) / 4)
+      calc(-15svh + var(--hero-size) / 2 + clamp(18px, 1.7vw, 26px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-door,
+  .hero-camera {
+    animation: none;
+  }
+
+  .hero-scroll.is-entering .hero-camera {
+    animation: none;
+    opacity: 0;
+  }
+
+  .hero-scroll.is-entering .hero-stage {
+    background: black;
+  }
+}
