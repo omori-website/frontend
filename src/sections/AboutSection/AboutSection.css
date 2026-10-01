@@ -29,14 +29,12 @@
   inset: 0;
   z-index: 20;
   background: #000 center / cover no-repeat;
-  animation: omori-frames 1200ms step-end 2 forwards;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
-@keyframes omori-frames {
-  0% { background-image: url('../../assets/about-section/omori-frame1.png'); }
-  33.333333% { background-image: url('../../assets/about-section/omori-frame2.png'); }
-  66.666667%, 100% { background-image: url('../../assets/about-section/omori-frame3.png'); }
-}
 
 .about-dialogue {
   position: relative;

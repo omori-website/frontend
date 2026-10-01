@@ -26,6 +26,7 @@
 }
 
 .hero-scroll.is-loading .hero-camera,
+.hero-scroll.is-awaiting-start .hero-camera,
 .hero-scroll.is-error .hero-camera {
   transform: translateY(200svh);
 }
@@ -66,6 +67,18 @@
   line-height: 1;
 }
 
+.hero-start {
+  position: absolute;
+  top: calc(50% + 80px);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.hero-loading button:focus-visible {
+  outline: 2px solid black;
+  outline-offset: 6px;
+}
+
 .hero-loading span:not(.sr-only) {
   font-size: 0.5em;
 }
@@ -93,6 +106,17 @@
   animation:
     camera-center 0.4s cubic-bezier(0.42, 0, 0.58, 1) forwards,
     camera-enter 0.4s cubic-bezier(0.9, 0, 1, 0) forwards;
+}
+
+.hero-scroll.is-leaving .hero-camera {
+  animation:
+    camera-center 0.4s cubic-bezier(0.42, 0, 0.58, 1) reverse both,
+    camera-leave 0.4s cubic-bezier(0, 0, 0.1, 1) both;
+}
+
+.hero-scroll.is-leaving .hero-door {
+  animation: none;
+  background-position: 100% 100%;
 }
 
 .hero-scroll.is-entering .hero-door {
@@ -159,6 +183,11 @@
 @keyframes camera-enter {
   0% { transform: scale(1); }
   100% { transform: scale(70); }
+}
+
+@keyframes camera-leave {
+  from { transform: scale(70); }
+  to { transform: scale(1); }
 }
 
 @keyframes camera-center {

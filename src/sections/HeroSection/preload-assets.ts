@@ -1,4 +1,9 @@
-const assets = Object.entries(import.meta.glob<string>('../../assets/**/*', {
+import { dialogueSounds, preloadDialogueSound } from '../AboutSection/dialogue-audio'
+
+const assets = Object.entries(import.meta.glob<string>([
+  '../../assets/**/*',
+  '../../music/**/*.{mp3,ogg,wav,m4a,aac,flac,opus,weba}',
+], {
   eager: true,
   query: '?url',
   import: 'default',
@@ -13,10 +18,17 @@ export function preloadAssets(onProgress: (progress: number) => void) {
   onProgress(Math.floor(completed / assets.length * 100))
 
   pending ??= Promise.all(assets.map(async ([path, url]) => {
-    if (/\.(png|webp|jpe?g|gif|svg|avif)$/i.test(path)) {
+    if (dialogueSounds.includes(url)) {
+      await preloadDialogueSound(url)
+    } else if (/\.(png|webp|jpe?g|gif|svg|avif)$/i.test(path)) {
       const image = new Image()
       image.src = url
-      await image.decode()
+      try {
+        await image.decode()
+      } catch (error) {
+        if (!path.endsWith('/gameplay-news-bg.webp')) throw error
+        console.error('Unable to preload gameplay background', error)
+      }
     } else {
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Could not load ${path}: ${response.status}`)

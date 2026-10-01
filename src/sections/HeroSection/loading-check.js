@@ -11,6 +11,7 @@ export async function checkLoading() {
     if (value < previous || value > 100) throw new Error('Progress must increase monotonically within 0–100.')
     if (document.documentElement.style.overflow !== 'hidden') throw new Error('Scrolling unlocked before the reveal finished.')
     if (hero.classList.contains('is-revealing') && value !== 100) throw new Error('Reveal started before every asset loaded.')
+    if (hero.classList.contains('is-awaiting-start') && (value !== 100 || !hero.querySelector('.hero-start'))) throw new Error('Start must appear only after all assets load.')
     if (hero.classList.contains('is-loading')) {
       const camera = hero.querySelector('.hero-camera')
       const wire = getComputedStyle(camera, '::before')

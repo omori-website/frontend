@@ -3,36 +3,52 @@ import './HeroSection.css'
 import heroLogo from '../../assets/hero-section/hero-logo.png'
 import heroWhitespace from '../../assets/hero-section/hero-whitespace.png'
 import { preloadAssets } from './preload-assets'
+import { unlockDialogueAudio } from '../AboutSection/dialogue-audio'
 
 type HeroSectionProps = {
   onComplete?: () => void
+  returning?: boolean
+  replay?: boolean
+  onMusicStart: () => void
+  onMusicEnd: () => void
 }
 
-function HeroSection({ onComplete }: HeroSectionProps) {
+function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, replay = false }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [entering, setEntering] = useState(false)
   const [entered, setEntered] = useState(false)
-  const zoomReady = useRef(false)
+  const [leaving, setLeaving] = useState(() => returning && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [progress, setProgress] = useState(0)
-  const [loading, setLoading] = useState<'loading' | 'revealing' | 'ready' | 'error'>('loading')
-
-  useLayoutEffect(() => {
-    if (loading === 'ready') return
-    const previousOverflow = document.documentElement.style.overflow
-    document.documentElement.style.overflow = 'hidden'
-    window.scrollTo(0, 0)
-    return () => { document.documentElement.style.overflow = previousOverflow }
-  }, [loading])
+  const [loading, setLoading] = useState<'loading' | 'awaiting-start' | 'revealing' | 'ready' | 'error'>(returning ? 'ready' : 'loading')
 
   useEffect(() => {
+    if (!replay) return
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setLoading(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'ready' : 'revealing'))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [replay])
+
+  useLayoutEffect(() => {
+    if (loading === 'ready' && !entering && !leaving) return
+    const previousOverflow = document.documentElement.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    if (loading !== 'ready') window.scrollTo(0, 0)
+    return () => { document.documentElement.style.overflow = previousOverflow }
+  }, [loading, entering, leaving])
+
+  useLayoutEffect(() => {
+    if (!returning) return
+    window.scrollTo(0, (sectionRef.current?.querySelector<HTMLDivElement>('.hero-stage')?.offsetHeight ?? 0) * 0.8)
+  }, [returning])
+
+  useEffect(() => {
+    if (returning || replay) return
     let active = true
-    let revealTimer: number | undefined
     const preload = preloadAssets(setProgress)
     preload.ready.then(() => {
       if (!active) return
-      revealTimer = window.setTimeout(() => {
-        setLoading(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'ready' : 'revealing')
-      }, 400)
+      setLoading('awaiting-start')
     }).catch((error: unknown) => {
       if (!active) return
       console.error(error)
@@ -40,44 +56,44 @@ function HeroSection({ onComplete }: HeroSectionProps) {
     })
     return () => {
       active = false
-      clearTimeout(revealTimer)
       preload.unsubscribe()
     }
-  }, [])
+  }, [returning, replay])
+
 
   useEffect(() => {
-    const armZoom = () => {
-      const bounds = sectionRef.current?.getBoundingClientRect()
-      zoomReady.current = !!bounds && bounds.top <= 0 && bounds.bottom <= window.innerHeight + 1
+    if (loading !== 'ready' || entering || leaving) return
+    const section = sectionRef.current!
+    const stage = section.querySelector<HTMLDivElement>('.hero-stage')!
+    const enterDoor = () => {
+      if (-section.getBoundingClientRect().top < stage.offsetHeight - 1) return
+      setEntering(true)
+      onMusicEnd()
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setEntered(true)
     }
 
-    armZoom()
-    document.addEventListener('scrollend', armZoom)
-    return () => document.removeEventListener('scrollend', armZoom)
-  }, [])
+    window.addEventListener('scroll', enterDoor, { passive: true })
+    window.addEventListener('resize', enterDoor)
+    enterDoor()
+    return () => {
+      window.removeEventListener('scroll', enterDoor)
+      window.removeEventListener('resize', enterDoor)
+    }
+  }, [loading, entering, leaving, onMusicEnd])
 
   useEffect(() => {
     if (entered) onComplete?.()
   }, [entered, onComplete])
 
-  const handleWheel = (deltaY: number) => {
-    if (loading === 'ready' && deltaY > 0 && zoomReady.current) {
-      zoomReady.current = false
-      setEntering(true)
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setEntered(true)
-    }
-  }
-
   return (
     <section
       ref={sectionRef}
       aria-label="White Space"
-      className={`hero-scroll is-${loading}${entering ? ' is-entering' : ''}${entered ? ' is-entered' : ''}`}
+      className={`hero-scroll is-${loading}${entering ? ' is-entering' : ''}${entered ? ' is-entered' : ''}${leaving ? ' is-leaving' : ''}`}
       aria-busy={loading !== 'ready'}
-      onWheel={(event) => handleWheel(event.deltaY)}
     >
       <div className="hero-stage">
-        {loading !== 'ready' && (
+        {!replay && loading !== 'ready' && (
           <div className="hero-loading">
             {loading === 'error' ? (
               <div role="alert">
@@ -89,7 +105,12 @@ function HeroSection({ onComplete }: HeroSectionProps) {
                 <div role="progressbar" aria-label="Loading site assets" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
                   {progress}<span>%</span>
                 </div>
-                <span className="sr-only" role="status">{progress === 100 ? 'Assets loaded. Revealing White Space.' : 'Loading site assets.'}</span>
+                {loading === 'awaiting-start' && <button className="hero-start" type="button" onClick={() => {
+                  onMusicStart()
+                  void unlockDialogueAudio().catch((error: unknown) => console.error('Unable to unlock dialogue audio', error))
+                  setLoading(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'ready' : 'revealing')
+                }}>Start</button>}
+                <span className="sr-only" role="status">{progress === 100 ? 'Assets loaded. Press Start to enter White Space with sound.' : 'Loading site assets.'}</span>
               </>
             )}
           </div>
@@ -100,6 +121,7 @@ function HeroSection({ onComplete }: HeroSectionProps) {
             if (event.target === event.currentTarget && event.propertyName === 'transform' && loading === 'revealing') setLoading('ready')
           }}
           onAnimationEnd={(event) => {
+            if (event.animationName === 'camera-leave') setLeaving(false)
             if (event.animationName === 'camera-enter') setEntered(true)
           }}
         >

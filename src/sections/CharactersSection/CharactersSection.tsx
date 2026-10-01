@@ -6,12 +6,14 @@ import './CharactersSection.css'
 import GameplayNewsSection from '../GameplayNewsSection/GameplayNewsSection'
 import FooterSection from '../FooterSection/FooterSection'
 import background from '../../assets/characters-section/background.png'
+import snapSound from '../../music/SE_snap.ogg'
 
 export default function CharactersSection({ visible, onReveal }: { visible: boolean; onReveal: () => void }) {
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const hostRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const snapRef = useRef<HTMLAudioElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const target = useRef(0)
   const immediate = useRef(false)
@@ -82,7 +84,13 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
 
   return (
     <section ref={sectionRef} id="characters" className={`characters-section${!visible || status === 'loading' ? ' is-preloading' : ''}`} inert={!visible || status === 'loading'} aria-label="Characters of OMORI">
-      <div ref={stageRef} className="characters-stage" onAnimationEnd={(event) => {
+      <audio ref={snapRef} src={snapSound} preload="auto" />
+      <div ref={stageRef} className="characters-stage" onAnimationStart={(event) => {
+        if (event.animationName !== 'characters-reveal' || event.target !== event.currentTarget) return
+        const audio = snapRef.current!
+        audio.currentTime = 0
+        void audio.play().catch((error: unknown) => console.error('Unable to play photobook snap', error))
+      }} onAnimationEnd={(event) => {
         if (event.animationName === 'characters-reveal' && event.target === event.currentTarget) onReveal()
       }}>
         <img className="characters-background" src={background} alt="" />

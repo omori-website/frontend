@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { bookTime, pickPolaroid, swayPolaroid } from './book-interaction'
 import type { Polaroid } from './book-interaction'
 import bookUrl from '../../assets/characters-section/omori_characters_book.glb?url'
-import gameplayBackground from '../../assets/gameplay-news-section/gameplay-news-bg.png'
+import gameplayBackground from '../../assets/gameplay-news-section/gameplay-news-bg.webp'
 import hero1 from '../../assets/kel-and-hero/hero1.png'
 import hero2 from '../../assets/kel-and-hero/hero2.png'
 import hero3 from '../../assets/kel-and-hero/hero3.png'
@@ -153,6 +153,8 @@ export function mountBook(container: HTMLDivElement, options: {
   let model: THREE.Group | undefined
   let mixer: THREE.AnimationMixer | undefined
   let disposed = false
+  let contextLost = false
+  let loadedPhotos: Photo[] | undefined
   let visible = true
   let pointerInside = false
   let pointerDirty = false
@@ -297,8 +299,20 @@ export function mountBook(container: HTMLDivElement, options: {
   function activity() {
     resetPointer()
     lastTime = 0
-    renderer.setAnimationLoop(visible && !document.hidden ? render : null)
+    renderer.setAnimationLoop(visible && !document.hidden && !contextLost ? render : null)
   }
+  function loseContext() {
+    contextLost = true
+    activity()
+    options.onError()
+  }
+  function restoreContext() {
+    contextLost = false
+    activity()
+    if (loadedPhotos) options.onReady(loadedPhotos)
+  }
+  renderer.domElement.addEventListener('webglcontextlost', loseContext)
+  renderer.domElement.addEventListener('webglcontextrestored', restoreContext)
   const resizeObserver = new ResizeObserver(resize)
   resizeObserver.observe(container)
   const visibilityObserver = new IntersectionObserver(([entry]) => {
@@ -317,19 +331,38 @@ export function mountBook(container: HTMLDivElement, options: {
   renderer.setAnimationLoop(render)
   resize()
 
-  Promise.all([
-    new GLTFLoader().loadAsync(bookUrl),
-    new THREE.TextureLoader().loadAsync(gameplayBackground),
-  ]).then(([gltf, background]) => {
+  function applyBackground() {
+    if (!model || !backgroundWindow.uniforms.background.value) return
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      const materials = Array.isArray(object.material) ? object.material : [object.material]
+      const replaced = materials.map((material) => {
+        if (material.name !== 'Print_green_screen') return material
+        material.dispose()
+        return backgroundWindow
+      })
+      object.material = Array.isArray(object.material) ? replaced : replaced[0]
+    })
+  }
+  new THREE.TextureLoader().loadAsync(gameplayBackground).then((background) => {
     if (disposed) {
-      disposeModel(gltf.scene)
       background.dispose()
       return
     }
-    model = gltf.scene
     background.colorSpace = THREE.SRGBColorSpace
     backgroundWindow.uniforms.background.value = background
     backgroundWindow.uniforms.imageSize.value.set(background.image.width, background.image.height)
+    applyBackground()
+  }).catch((error) => {
+    if (!disposed) console.error('Unable to load book background', error)
+  })
+
+  new GLTFLoader().loadAsync(bookUrl).then((gltf) => {
+    if (disposed) {
+      disposeModel(gltf.scene)
+      return
+    }
+    model = gltf.scene
     try {
       const clip = gltf.animations.find((item) => item.name === 'OMORI_Characters_Book')
       if (!model.getObjectByName('OMORI_Book') || !clip) throw new Error('Missing exported book or animation')
@@ -338,19 +371,14 @@ export function mountBook(container: HTMLDivElement, options: {
       model.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return
         const materials = Array.isArray(object.material) ? object.material : [object.material]
-        const replaced = materials.map((material) => {
-          if (/^Print_.*_(description|profile)$/.test(material.name)) {
-            const texture = (material as THREE.MeshStandardMaterial).map
-            if (texture) {
-              texture.anisotropy = printAnisotropy
-              texture.needsUpdate = true
-            }
+        for (const material of materials) {
+          if (!/^Print_.*_(description|profile)$/.test(material.name)) continue
+          const texture = (material as THREE.MeshStandardMaterial).map
+          if (texture) {
+            texture.anisotropy = printAnisotropy
+            texture.needsUpdate = true
           }
-          if (material.name !== 'Print_green_screen') return material
-          material.dispose()
-          return backgroundWindow
-        })
-        object.material = Array.isArray(object.material) ? replaced : replaced[0]
+        }
         if (!/^Polaroid_(Omori|Aubrey|Hero|Kel|Mari|Basil)_0[1-3]$/.test(object.name)) return
         const material = materials[0] as THREE.MeshStandardMaterial
         const texture = material.map
@@ -380,13 +408,15 @@ export function mountBook(container: HTMLDivElement, options: {
         photos.push({ name: object.name, character, index, url: photoUrl })
       })
       if (cards.size !== 18) throw new Error('Expected 18 independently parented Polaroids')
+      applyBackground()
       centered.add(model)
       mixer = new THREE.AnimationMixer(model)
       mixer.clipAction(clip).play()
       previousTime = -1
       // Upload textures and draw the initial pose while the intro still covers the stage.
       render(0)
-      options.onReady(photos.sort((a, b) => a.index - b.index))
+      loadedPhotos = photos.sort((a, b) => a.index - b.index)
+      if (!contextLost) options.onReady(loadedPhotos)
     } catch (error) {
       console.error('Unable to load OMORI book', error)
       centered.remove(model)
@@ -397,7 +427,7 @@ export function mountBook(container: HTMLDivElement, options: {
     }
   }).catch((error) => {
     if (!disposed) {
-      console.error('Unable to load book background', error)
+      console.error('Unable to load OMORI book', error)
       options.onError()
     }
   })
@@ -414,6 +444,8 @@ export function mountBook(container: HTMLDivElement, options: {
     container.removeEventListener('pointerdown', down)
     container.removeEventListener('pointerup', up)
     container.removeEventListener('pointercancel', resetPointer)
+    renderer.domElement.removeEventListener('webglcontextlost', loseContext)
+    renderer.domElement.removeEventListener('webglcontextrestored', restoreContext)
     renderer.setAnimationLoop(null)
     if (model) {
       mixer?.stopAllAction()
