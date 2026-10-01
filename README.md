@@ -56,6 +56,10 @@ The black dialogue has talking clips but no background music; the OMORI frame se
 Tulip loops from the photobook reveal through gameplay, news, and the footer.
 `src/music/SE_snap.ogg` plays once at the start of the photobook reveal shake,
 including when the reveal is replayed after reversing the intro.
+The snap is decoded before Start and uses the same Start-unlocked Web Audio context
+as the talking clips, rather than delayed autoplay on a separate media element.
+After Start, run `src/sections/CharactersSection/snap-check.mjs` with a browser page
+to check one audible snap per reveal, including two replays.
 Reversing into the dialogue stops Tulip; returning to the hero restarts WHITE SPACE.
 WHITE SPACE fades in over 600ms; Tulip fades in over 1500ms and out over 600ms. Fade-out finishes before pausing and
 clearing the source; interrupted transitions continue from the current volume.
@@ -88,8 +92,13 @@ previews, fonts, and the photobook GLB load before 100%. Images are decoded and 
 font is ready before completion. Failed loads show a retry button instead of revealing
 an incomplete page. Scrolling stays locked until the reveal finishes.
 
-At 100%, a Start button appears and the view waits. Clicking Start enables music,
-then the view moves down to the existing hero
+At 100%, Start appears only when WebGL2 is available. Otherwise, the loader stays at
+100% with Chrome graphics-acceleration instructions and a Google Chrome help link;
+Start remains absent and scrolling stays locked. The browser does not expose the
+acceleration setting directly, so this checks Three.js's required WebGL2 capability.
+Run `checkGraphicsRequired` from `src/sections/HeroSection/start-check.mjs` in Chromium
+launched with `--disable-gpu` to verify the blocked path; the default check covers Start.
+Clicking Start enables music, then the view moves down to the existing hero
 over 3s with a gentler peak speed. The lightbulb wire fades in over 3s and fades toward its
 upper end. The entire wire starts below the loading viewport and enters from the
 bottom with the camera movement, rather than appearing in place at 100%.
@@ -111,9 +120,9 @@ continued upward scrolling closes the door frames without replaying the loader.
 Run `src/sections/Navbar/home-check.mjs` after navigation appears to verify replay.
 
 The loader downloads every audio file in `src/music` (including snap, soundtrack
-tracks, and all talking clips) and includes them in progress. Start is unavailable
-until these downloads finish; download failure uses the existing loading error.
-Preloading bytes does not bypass browser autoplay restrictions.
+tracks, and all talking clips) and includes them in progress. Talking clips and snap
+are also decoded before Start becomes available; download or decode failure uses
+the existing loading error. Start resumes their shared audio context in the user gesture.
 
 With network throttling enabled, run this while the loading counter is visible:
 `(await import('/src/sections/HeroSection/loading-check.js')).checkLoading()`.
@@ -154,6 +163,11 @@ The destination's minimum height follows the full image aspect ratio. Once the
 zoom completes, scrolling moves down the image instead of repeating a viewport
 crop. The shared parent grows with future content. Scrolling backward restores the book; reduced-motion users skip
 the zoom at the end of that scroll phase.
+Full-screen hero, dialogue, and character/background layers use dynamic viewport
+height (`dvh`) so phone browser toolbar changes do not expose an empty bottom strip.
+The photobook scroll travel remains in `svh` to keep page-turn distances stable.
+Run `src/sections/CharactersSection/viewport-check.mjs` on the ready hero to check
+coverage as the phone viewport expands and contracts.
 
 ## Gameplay previews
 
@@ -197,6 +211,10 @@ The chatbox opens with “OMORI is a psychological horror RPG about friendship,
 memory, and the things we try to forget.” before the existing three messages.
 Typing starts with the dialogue sound, without an additional fixed startup pause.
 The final message uses the same steady reveal rate, without an extra ellipsis pause.
+Unrevealed letters retain their layout with zero opacity, avoiding a completed-text
+flash on mobile while preserving line wrapping. After Start and dialogue entry,
+`src/sections/AboutSection/dialogue-paint-check.mjs` checks each forward message
+transition frame-by-frame with reduced motion disabled.
 
 Forward scrolling cannot skip the pinned dialogue or frame sequence. Backward
 wheel gestures, downward touch swipes, and ArrowUp/PageUp/Home step backward:
@@ -222,9 +240,8 @@ The footer follows the news carousel and uses the supplied artwork in
 from the supplied footer reference. Navigation links target the existing page
 sections; Home restarts the opening sequence and the Steam badge opens the game
 store page. Below 640px, branding, navigation, and character artwork stack.
-On mobile, the torn paper background scales to the viewport width rather than
-the stacked content height; white continues below the artwork so the wordmark
-and links remain on paper.
+On mobile, the torn paper texture scales across the full stacked footer height,
+preserving its paper color throughout without a separate white fill or color seam.
 The footer is the final scroll boundary; root overscroll is disabled to prevent
 browser bounce from exposing space beyond it.
 

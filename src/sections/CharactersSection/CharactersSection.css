@@ -18,15 +18,15 @@
 .characters-stage {
   position: sticky;
   top: 0;
-  height: 100svh;
-  margin-bottom: -100svh;
+  height: 100dvh;
+  margin-bottom: -100dvh;
   overflow: hidden;
   animation: characters-reveal 350ms ease-out both;
 }
 
 .characters-background {
   display: block;
-  width: max(100%, calc(100svh * 1023 / 397));
+  width: max(100%, calc(100dvh * 1023 / 397));
   max-width: none;
   height: 100%;
   object-fit: cover;

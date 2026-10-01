@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import WebGL from 'three/addons/capabilities/WebGL.js'
 import './HeroSection.css'
 import heroLogo from '../../assets/hero-section/hero-logo.png'
 import heroWhitespace from '../../assets/hero-section/hero-whitespace.png'
 import { preloadAssets } from './preload-assets'
-import { unlockDialogueAudio } from '../AboutSection/dialogue-audio'
+import { unlockAudio } from '../AboutSection/dialogue-audio'
 
 type HeroSectionProps = {
   onComplete?: () => void
@@ -19,7 +20,7 @@ function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, 
   const [entered, setEntered] = useState(false)
   const [leaving, setLeaving] = useState(() => returning && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [progress, setProgress] = useState(0)
-  const [loading, setLoading] = useState<'loading' | 'awaiting-start' | 'revealing' | 'ready' | 'error'>(returning ? 'ready' : 'loading')
+  const [loading, setLoading] = useState<'loading' | 'awaiting-start' | 'graphics-required' | 'revealing' | 'ready' | 'error'>(returning ? 'ready' : 'loading')
 
   useEffect(() => {
     if (!replay) return
@@ -48,7 +49,7 @@ function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, 
     const preload = preloadAssets(setProgress)
     preload.ready.then(() => {
       if (!active) return
-      setLoading('awaiting-start')
+      setLoading(WebGL.isWebGL2Available() ? 'awaiting-start' : 'graphics-required')
     }).catch((error: unknown) => {
       if (!active) return
       console.error(error)
@@ -90,11 +91,11 @@ function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, 
       ref={sectionRef}
       aria-label="White Space"
       className={`hero-scroll is-${loading}${entering ? ' is-entering' : ''}${entered ? ' is-entered' : ''}${leaving ? ' is-leaving' : ''}`}
-      aria-busy={loading !== 'ready'}
+      aria-busy={loading === 'loading' || loading === 'revealing'}
     >
       <div className="hero-stage">
         {!replay && loading !== 'ready' && (
-          <div className="hero-loading">
+          <div className={`hero-loading${loading === 'graphics-required' ? ' is-graphics-required' : ''}`}>
             {loading === 'error' ? (
               <div role="alert">
                 <p>Some assets couldn’t load.</p>
@@ -107,10 +108,15 @@ function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, 
                 </div>
                 {loading === 'awaiting-start' && <button className="hero-start" type="button" onClick={() => {
                   onMusicStart()
-                  void unlockDialogueAudio().catch((error: unknown) => console.error('Unable to unlock dialogue audio', error))
+                  void unlockAudio().catch((error: unknown) => console.error('Unable to unlock sound effects', error))
                   setLoading(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'ready' : 'revealing')
                 }}>Start</button>}
-                <span className="sr-only" role="status">{progress === 100 ? 'Assets loaded. Press Start to enter White Space with sound.' : 'Loading site assets.'}</span>
+                {loading === 'graphics-required' && <div className="hero-graphics-help" role="alert">
+                  <p>The photobook needs WebGL2, which is unavailable in your browser.</p>
+                  <p>In Chrome, open Settings → System and enable “Use graphics acceleration when available”. Relaunch Chrome, then reload this page.</p>
+                  <a href="https://support.google.com/chrome/thread/412501283/how-do-i-turn-hardware-acceleration-back-on?hl=en" target="_blank" rel="noopener noreferrer">How to enable graphics acceleration (opens in a new tab)</a>
+                </div>}
+                <span className="sr-only" role="status">{loading === 'graphics-required' ? 'Assets loaded. Graphics acceleration is required to continue.' : progress === 100 ? 'Assets loaded. Press Start to enter White Space with sound.' : 'Loading site assets.'}</span>
               </>
             )}
           </div>

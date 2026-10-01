@@ -41,9 +41,6 @@
     justify-items: center;
     gap: 32px;
     padding: 150px 24px 0;
-    background:
-      url('../../assets/footer/paper-texture.png') center top / 100% auto no-repeat,
-      linear-gradient(to bottom, transparent 49.514vw, #fff 49.514vw);
     text-align: center;
   }
   .footer-brand { padding: 0; }

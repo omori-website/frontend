@@ -1,4 +1,5 @@
-import { dialogueSounds, preloadDialogueSound } from '../AboutSection/dialogue-audio'
+import { dialogueSounds, preloadSound } from '../AboutSection/dialogue-audio'
+import snapSound from '../../music/SE_snap.ogg'
 
 const assets = Object.entries(import.meta.glob<string>([
   '../../assets/**/*',
@@ -18,8 +19,8 @@ export function preloadAssets(onProgress: (progress: number) => void) {
   onProgress(Math.floor(completed / assets.length * 100))
 
   pending ??= Promise.all(assets.map(async ([path, url]) => {
-    if (dialogueSounds.includes(url)) {
-      await preloadDialogueSound(url)
+    if (url === snapSound || dialogueSounds.includes(url)) {
+      await preloadSound(url)
     } else if (/\.(png|webp|jpe?g|gif|svg|avif)$/i.test(path)) {
       const image = new Image()
       image.src = url

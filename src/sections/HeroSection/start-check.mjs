@@ -15,3 +15,16 @@ export default async function checkStart(page) {
   await page.waitForSelector('.hero-scroll.is-ready')
   assert.equal(await page.$('.hero-start'), null)
 }
+
+// Run on a fresh visit in Chromium launched with --disable-gpu.
+export async function checkGraphicsRequired(page) {
+  await page.waitForSelector('.hero-scroll.is-graphics-required', { timeout: 60000 })
+  assert.equal(await page.$eval('[role="progressbar"]', e => e.getAttribute('aria-valuenow')), '100')
+  assert.equal(await page.$('.hero-start'), null, 'Unavailable WebGL2 must block entry')
+  assert.equal(await page.evaluate(() => document.documentElement.style.overflow), 'hidden')
+  assert.match(await page.$eval('.hero-graphics-help', e => e.textContent), /graphics acceleration/)
+  const href = await page.$eval('.hero-graphics-help a', e => e.href)
+  assert.equal(new URL(href).hostname, 'support.google.com')
+  await page.keyboard.press('Enter')
+  assert.ok(await page.$('.hero-scroll.is-graphics-required'), 'Keyboard input must not bypass the gate')
+}

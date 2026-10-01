@@ -7,7 +7,7 @@
 .about-section {
   display: grid;
   place-items: center;
-  min-height: 100svh;
+  min-height: 100dvh;
   background: #000;
   padding: 24px;
 }
@@ -61,7 +61,7 @@
   outline-offset: 7px;
 }
 
-.about-dialogue-unrevealed { visibility: hidden; }
+.about-dialogue-unrevealed { opacity: 0; }
 
 .about-dialogue-arrow {
   position: absolute;
