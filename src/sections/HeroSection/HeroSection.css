@@ -5,6 +5,7 @@
 
 .hero-stage {
   --hero-size: min(80vw, 45svh, 480px);
+  --hero-logo-width: min(28vw, 32svh, 322px);
 
   position: sticky;
   top: 0;
@@ -22,6 +23,70 @@
   transform-origin:
     calc(50% - var(--hero-size) / 4)
     calc(65svh - var(--hero-size) / 2 - clamp(18px, 1.7vw, 26px));
+}
+
+.hero-scroll.is-loading .hero-camera,
+.hero-scroll.is-error .hero-camera {
+  transform: translateY(200svh);
+}
+
+.hero-scroll.is-revealing .hero-camera {
+  transform: translateY(0);
+  transition: transform 3s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.hero-camera::before {
+  content: '';
+  position: absolute;
+  left: calc(50% + var(--hero-logo-width) * 14.5 / 322);
+  bottom: 100%;
+  width: max(1px, calc(var(--hero-logo-width) / 322));
+  height: 100svh;
+  background: linear-gradient(to bottom, transparent, #111 40%);
+  opacity: 0;
+}
+
+.hero-scroll.is-revealing .hero-camera::before,
+.hero-scroll.is-ready .hero-camera::before {
+  opacity: 1;
+  transition: opacity 3s ease-in-out;
+}
+
+.hero-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: white;
+  color: black;
+  font-family: 'OMORI', monospace;
+  font-size: clamp(64px, 10vw, 128px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hero-loading span:not(.sr-only) {
+  font-size: 0.5em;
+}
+
+.hero-loading [role='alert'] {
+  padding: 24px;
+  text-align: center;
+  font-size: 32px;
+}
+
+.hero-loading button {
+  margin-top: 16px;
+  border: 2px solid currentColor;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+.hero-scroll.is-revealing .hero-loading {
+  background: transparent;
+  transform: translateY(-100svh);
+  transition: transform 3s cubic-bezier(0.45, 0, 0.55, 1);
 }
 
 .hero-scroll.is-entering .hero-camera {
@@ -50,7 +115,7 @@
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(28vw, 32svh, 322px);
+  width: var(--hero-logo-width);
   height: auto;
   transform: translateX(-50%);
 }
@@ -106,6 +171,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-scroll.is-ready .hero-camera::before {
+    transition: none;
+  }
+  .hero-scroll.is-revealing .hero-camera,
+  .hero-scroll.is-revealing .hero-loading {
+    transition-duration: 0.01ms;
+  }
   .hero-door,
   .hero-camera {
     animation: none;

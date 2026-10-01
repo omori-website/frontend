@@ -35,10 +35,27 @@ See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rule
 
 All site artwork, the book GLB, font, and favicon live in `src/assets`.
 Components import explicit asset URLs; CSS uses relative `url(...)` references.
-Vite emits referenced assets with content hashes and applies the configured deployment
-base. Unreferenced source artwork stays in the repository but is not copied into builds.
+Vite emits assets with content hashes and applies the configured deployment base.
+The initial loader includes every file in `src/assets`, including otherwise unused artwork.
 After replacing assets, rebuild for deployment. For a subdirectory deployment, use
 `npm run build -- --base=/omori/` and serve the site at that base path.
+
+## Initial loading reveal
+
+The percentage tracks completed asset loads (not transferred bytes): all images, animated
+previews, fonts, and the photobook GLB load before 100%. Images are decoded and the OMORI
+font is ready before completion. Failed loads show a retry button instead of revealing
+an incomplete page. Scrolling stays locked until the reveal finishes.
+
+At 100%, the counter holds for 400ms, then the view moves down to the existing hero
+over 3s with a gentler peak speed. The lightbulb wire fades in over 3s and fades toward its
+upper end. The entire wire starts below the loading viewport and enters from the
+bottom with the camera movement, rather than appearing in place at 100%.
+Reduced-motion users skip the camera movement. The existing door/White Space
+scroll sequence starts only after loading finishes.
+
+With network throttling enabled, run this while the loading counter is visible:
+`(await import('/src/sections/HeroSection/loading-check.js')).checkLoading()`.
 
 ## Character photobook
 
