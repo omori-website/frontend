@@ -220,11 +220,30 @@
   }
 }
 
+.hero-scroll-hint {
+  position: absolute;
+  z-index: 2;
+  top: calc(100svh - max(56px, env(safe-area-inset-bottom) + 48px));
+  left: 50%;
+  color: #555;
+  font-family: 'OMORI', monospace;
+  font-size: 40px;
+  line-height: 1;
+  pointer-events: none;
+  animation: scroll-hint-bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes scroll-hint-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, 4px); }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .hero-stage { min-height: 100lvh; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-scroll-hint { animation: none; transform: translateX(-50%); }
   .hero-scroll.is-ready .hero-camera::before {
     transition: none;
   }

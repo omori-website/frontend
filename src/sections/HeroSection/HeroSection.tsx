@@ -145,6 +145,7 @@ function HeroSection({ onComplete, onMusicStart, onMusicEnd, returning = false, 
             <div className="hero-door" aria-hidden="true" />
           </div>
         </div>
+        {loading === 'ready' && !entering && !leaving && <span className="hero-scroll-hint">scroll</span>}
       </div>
     </section>
   )
