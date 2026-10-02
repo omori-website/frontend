@@ -8,6 +8,13 @@ export const dialogueSounds = [chatbox2, chatbox3, chatbox4, chatbox5]
 export const dialogueDurations = [1.043, 1.290, 1.064, 1.589]
 let context: AudioContext | undefined
 const buffers = new Map<string, Promise<AudioBuffer>>()
+let mobileRecoveryInstalled = false
+
+function recoverMobileAudio() {
+  if (!context || context.state === 'running' || context.state === 'closed') return
+  void context.resume().catch((error: unknown) => console.error('Unable to resume sound effects', error))
+}
+
 
 export function preloadSound(url: string) {
   context ??= new AudioContext()
@@ -25,6 +32,17 @@ export function preloadSound(url: string) {
 
 export function unlockAudio() {
   context ??= new AudioContext()
+  if (window.matchMedia('(hover: none) and (pointer: coarse)').matches && !mobileRecoveryInstalled) {
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+    if (session) {
+      try { session.type = 'playback' }
+      catch (error) { console.error('Unable to configure sound effects playback', error) }
+    }
+    // iOS authorizes audio on touchend/click, not on an asynchronous effect callback.
+    window.addEventListener('touchend', recoverMobileAudio, { capture: true, passive: true })
+    window.addEventListener('click', recoverMobileAudio, { capture: true })
+    mobileRecoveryInstalled = true
+  }
   return context.resume()
 }
 

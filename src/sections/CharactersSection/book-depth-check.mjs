@@ -23,6 +23,7 @@ export default async function checkBookDepth(page) {
       await new Promise((resolve, reject) => {
         stop = mountBook(host, {
           target: { current: 1 }, immediate: { current: true }, photoOpen: { current: false },
+          flipOnly: { current: false },
           onReady: resolve, onError: () => reject(new Error('Book failed to load')),
           onOpen: () => {}, onTransition: () => {},
         })

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { bookTime, pickPolaroid, swayPolaroid } from './book-interaction'
 import type { Polaroid } from './book-interaction'
+import { readingPose } from './book-reading'
 import bookUrl from '../../assets/characters-section/omori_characters_book.glb?url'
 import gameplayBackground from '../../assets/gameplay-news-section/gameplay-news-bg.webp'
 import hero1 from '../../assets/kel-and-hero/hero1.png'
@@ -82,6 +83,7 @@ export function mountBook(container: HTMLDivElement, options: {
   target: { current: number }
   immediate: { current: boolean }
   photoOpen: { current: boolean }
+  flipOnly: { current: boolean }
   onReady: (photos: Photo[]) => void
   onError: () => void
   onOpen: (name: string) => void
@@ -165,6 +167,9 @@ export function mountBook(container: HTMLDivElement, options: {
   let press: { x: number; y: number; name: string } | null = null
   let lastPointerX = 0
   let viewDistance = 1
+  let readingDistance = 1
+  const reading = { page: 0, x: 0, zoom: 0 }
+  const scrollReading = { page: 0, x: 0, zoom: 0 }
   let transitionComplete = false
 
   function resize() {
@@ -175,6 +180,7 @@ export function mountBook(container: HTMLDivElement, options: {
     camera.aspect = width / height
     const halfFov = THREE.MathUtils.degToRad(camera.fov / 2)
     viewDistance = Math.max(1.98 / (Math.tan(halfFov) * camera.aspect), 1.43 / Math.tan(halfFov))
+    readingDistance = Math.max(1.02 / (Math.tan(halfFov) * camera.aspect), 1.43 / Math.tan(halfFov))
     camera.position.set(0, viewDistance, viewDistance * 0.09)
     camera.lookAt(0, 0, 0)
     camera.updateProjectionMatrix()
@@ -238,6 +244,7 @@ export function mountBook(container: HTMLDivElement, options: {
     lastTime = time
     const smoothing = 1 - Math.exp(-10 * delta)
     const difference = options.target.current - progress
+    const instant = options.immediate.current || reducedMotion.matches
     progress = options.immediate.current || reducedMotion.matches || Math.abs(difference) < 0.001 ? options.target.current : progress + difference * smoothing
     options.immediate.current = false
     const imageSize = backgroundWindow.uniforms.imageSize.value
@@ -248,7 +255,20 @@ export function mountBook(container: HTMLDivElement, options: {
         -destination.getBoundingClientRect().top * (reducedMotion.matches ? 1 : 0.35), 0, imageHeight - stageSize.y,
       )
     }
-    const animationTime = bookTime(progress)
+    const mobile = container.clientWidth <= 640 && camera.aspect < 1
+    if (mobile && options.flipOnly.current) {
+      reading.zoom = instant ? 0 : THREE.MathUtils.lerp(reading.zoom, 0, smoothing)
+      reading.x = instant ? 0 : THREE.MathUtils.lerp(reading.x, 0, smoothing)
+      if (reading.zoom < 0.02) {
+        reading.page = instant ? options.target.current : THREE.MathUtils.lerp(reading.page, options.target.current, smoothing)
+      }
+    } else {
+      readingPose(progress, mobile, scrollReading)
+      reading.page = scrollReading.page
+      reading.x = instant || !mobile ? scrollReading.x : THREE.MathUtils.lerp(reading.x, scrollReading.x, smoothing)
+      reading.zoom = instant || !mobile ? scrollReading.zoom : THREE.MathUtils.lerp(reading.zoom, scrollReading.zoom, smoothing)
+    }
+    const animationTime = bookTime(reading.page)
     const poseChanged = animationTime !== previousTime
     if (model && mixer && poseChanged) {
       mixer.setTime(animationTime) // Scroll owns time; never automatically advance this mixer.
@@ -268,9 +288,11 @@ export function mountBook(container: HTMLDivElement, options: {
     const zoom = reducedMotion.matches ? (reveal >= 1 ? 1 : 0) : reveal
     // Move close enough that the narrower cover dimension exceeds every viewport edge.
     const coverDistance = Math.min(0.78 / camera.aspect, 1.05) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
-    const distance = THREE.MathUtils.lerp(viewDistance, coverDistance, zoom)
-    camera.position.set(0, distance, distance * 0.09 * (1 - zoom))
-    camera.lookAt(0, 0, 0)
+    const cameraX = reading.x * (1 - zoom)
+    const framedDistance = THREE.MathUtils.lerp(viewDistance, readingDistance, reading.zoom)
+    const distance = THREE.MathUtils.lerp(framedDistance, coverDistance, zoom)
+    camera.position.set(cameraX, distance, distance * 0.09 * (1 - zoom))
+    camera.lookAt(cameraX, 0, 0)
     const tilt = !reducedMotion.matches && !options.photoOpen.current && finePointer.matches
     pivot.rotation.x += ((tilt ? pointer.y * 0.14 * (1 - reveal) : 0) - pivot.rotation.x) * smoothing
     pivot.rotation.z += ((tilt ? -pointer.x * 0.16 * (1 - reveal) : 0) - pivot.rotation.z) * smoothing

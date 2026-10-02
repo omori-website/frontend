@@ -58,6 +58,13 @@ Tulip loops from the photobook reveal through gameplay, news, and the footer.
 including when the reveal is replayed after reversing the intro.
 The snap is decoded before Start and uses the same Start-unlocked Web Audio context
 as the talking clips, rather than delayed autoplay on a separate media element.
+On touch-only/coarse-pointer devices, Start requests the Audio Session API's
+`playback` policy when available, so iOS effects follow media playback rather than
+the ambient silent-switch policy. Browsers without Audio Session support retain
+their native mute policy. Later touchend/click gestures resume a suspended or
+interrupted effects context synchronously; desktop audio is unchanged.
+Run `src/sections/AboutSection/mobile-audio-check.mjs` on the dev-server Start
+screen with touch emulation to check dialogue recovery and non-silent output.
 After Start, run `src/sections/CharactersSection/snap-check.mjs` with a browser page
 to check one audible snap per reveal, including two replays.
 Reversing into the dialogue stops Tulip; returning to the hero restarts WHITE SPACE.
@@ -130,6 +137,19 @@ Click Start once the check reaches 100% to complete the loading/reveal check.
 
 ## Character photobook
 
+Portrait screens up to 640px hold on the left page for 32% of each spread's scroll
+range, pan right over 13%, then hold on the right for another 32%. The remaining
+scroll pulls back, flips the page, and moves into the next left page.
+Mobile portrait uses 1600svh of scroll travel (twice desktop's 800svh), so the same
+gesture advances the reading sequence half as far without intercepting touch input.
+Mobile arrows skip the reading tour: pull back, flip one spread, and stay zoomed out.
+Wheel or touch scrolling resumes close-up reading. Keyboard navigation skips interpolation.
+Desktop and landscape retain the full spread, and covers retain their original framing.
+Run `node src/sections/CharactersSection/book-reading.test.mjs` for sequence boundaries
+and `src/sections/CharactersSection/book-framing-check.mjs` with a dev-server browser
+page to verify actual rendered camera positions.
+
+
 Polaroids enlarge by 3% on pointer hover and ease back on mouse-out, alongside the existing sway. Reduced-motion users get the same scale feedback without interpolation.
 
 Polaroids restore depth writing when switching exported GLB `BLEND` materials to opaque alpha-tested cards. Without this, a later-drawn page can erase a visible card while its geometry remains clickable. Run the default export of `src/sections/CharactersSection/book-depth-check.mjs` with a browser page on the dev server to verify actual card pixels survive adverse page draw order.
@@ -165,9 +185,12 @@ The destination's minimum height follows the full image aspect ratio. Once the
 zoom completes, scrolling moves down the image instead of repeating a viewport
 crop. The shared parent grows with future content. Scrolling backward restores the book; reduced-motion users skip
 the zoom at the end of that scroll phase.
-Full-screen hero, dialogue, and character/background layers use dynamic viewport
-height (`dvh`) so phone browser toolbar changes do not expose an empty bottom strip.
-The photobook scroll travel remains in `svh` to keep page-turn distances stable.
+Desktop full-screen layers retain dynamic viewport height (`dvh`). On touch-only,
+coarse-pointer devices, hero and character/background layers use large viewport
+height (`lvh`): browser toolbar movement does not resize the panorama or WebGL
+buffer, and the layers still cover the expanded viewport. Orientation changes
+continue to resize the scene. Dialogue retains `dvh`; photobook scroll travel
+remains in `svh` to keep page-turn distances stable.
 Run `src/sections/CharactersSection/viewport-check.mjs` on the ready hero to check
 coverage as the phone viewport expands and contracts.
 

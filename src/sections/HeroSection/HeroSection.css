@@ -220,6 +220,10 @@
   }
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .hero-stage { min-height: 100lvh; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll.is-ready .hero-camera::before {
     transition: none;

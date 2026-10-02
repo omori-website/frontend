@@ -143,6 +143,16 @@
   .book-page-controls { gap: 6px; font-size: 20px; }
 }
 
+@media (max-width: 640px) and (orientation: portrait) {
+  .book-scroll-space { height: 1600svh; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Stable while browser toolbars move; large viewport keeps every edge covered. */
+  .characters-stage { height: 100lvh; margin-bottom: -100lvh; }
+  .characters-background { width: max(100%, calc(100lvh * 1023 / 397)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .characters-stage { animation-duration: 1ms; transform: none !important; }
   .characters-background { animation: none; }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BOOK_PAGES } from './book-interaction'
+import { MOBILE_BOOK, readingPose, readingStep } from './book-reading'
 import { mountBook } from './book-scene'
 import type { Photo } from './book-scene'
 import './CharactersSection.css'
@@ -17,6 +18,7 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
   const target = useRef(0)
   const immediate = useRef(false)
   const photoOpen = useRef(false)
+  const flipOnly = useRef(false)
   const photosRef = useRef<Photo[]>([])
   const [page, setPage] = useState(0)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -25,10 +27,12 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
   useEffect(() => {
     const section = sectionRef.current!
     const stage = stageRef.current!
+    const pose = { page: 0, x: 0, zoom: 0 }
     function updateScroll() {
       const travel = section.querySelector<HTMLDivElement>('.book-scroll-space')!.offsetHeight
       target.current = Math.max(0, Math.min(1, -section.getBoundingClientRect().top / Math.max(1, travel))) * 8
-      const next = Math.min(7, Math.round(target.current))
+      readingPose(target.current, window.matchMedia(MOBILE_BOOK).matches && !flipOnly.current, pose)
+      const next = Math.min(7, Math.round(pose.page))
       setPage((current) => current === next ? current : next)
     }
     const resizeObserver = new ResizeObserver(updateScroll)
@@ -39,9 +43,12 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
     })
     visibilityObserver.observe(section)
     window.addEventListener('scroll', updateScroll, { passive: true })
+    const resumeReading = () => { flipOnly.current = false }
+    window.addEventListener('wheel', resumeReading, { passive: true })
+    window.addEventListener('touchmove', resumeReading, { passive: true })
     updateScroll()
     const unmount = mountBook(hostRef.current!, {
-      target, immediate, photoOpen,
+      target, immediate, photoOpen, flipOnly,
       onTransition: (complete) => stage.classList.toggle('is-background-revealed', complete),
       onReady: (loaded) => {
         photosRef.current = loaded
@@ -61,6 +68,8 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
       resizeObserver.disconnect()
       visibilityObserver.disconnect()
       window.removeEventListener('scroll', updateScroll)
+      window.removeEventListener('wheel', resumeReading)
+      window.removeEventListener('touchmove', resumeReading)
     }
   }, [])
 
@@ -72,13 +81,19 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
     const section = sectionRef.current!
     const travel = section.querySelector<HTMLDivElement>('.book-scroll-space')!.offsetHeight
     const value = Math.max(0, Math.min(7, next))
+    flipOnly.current = window.matchMedia(MOBILE_BOOK).matches
     immediate.current = instant
     target.current = value
-    setPage(value)
+    const pose = { page: 0, x: 0, zoom: 0 }
+    readingPose(value, window.matchMedia(MOBILE_BOOK).matches, pose)
+    setPage(Math.min(7, Math.round(pose.page)))
     window.scrollTo({
       top: window.scrollY + section.getBoundingClientRect().top + travel * value / 8,
       behavior: instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
     })
+  }
+  function step(direction: number, instant: boolean) {
+    navigate(readingStep(target.current, direction, window.matchMedia(MOBILE_BOOK).matches && !flipOnly.current), instant)
   }
 
   return (
@@ -106,7 +121,8 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
                 setPhoto(selected)
               } else if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
                 event.preventDefault()
-                navigate(event.key === 'Home' ? 0 : event.key === 'End' ? 7 : page + (event.key === 'ArrowRight' ? 1 : -1), true)
+                if (event.key === 'Home' || event.key === 'End') navigate(event.key === 'Home' ? 0 : 7, true)
+                else step(event.key === 'ArrowRight' ? 1 : -1, true)
               }
             }} />
           {status === 'error' && <p className="book-status" role="status">
@@ -115,13 +131,13 @@ export default function CharactersSection({ visible, onReveal }: { visible: bool
           <div className="book-navigation">
             <nav className="book-page-controls" aria-label="Book pages">
               <button type="button" aria-label="Previous page" disabled={status !== 'ready' || page === 0}
-                onClick={(event) => navigate(page - 1, event.detail === 0)}>&lt;</button>
+                onClick={(event) => step(-1, event.detail === 0)}>&lt;</button>
               <span className="book-page-count" aria-live="polite" aria-atomic="true">
                 <span aria-hidden="true">{page + 1}/8</span>
                 <span className="sr-only">{BOOK_PAGES[page]}, page {page + 1} of 8</span>
               </span>
               <button type="button" aria-label="Next page" disabled={status !== 'ready' || page === 7}
-                onClick={(event) => navigate(page + 1, event.detail === 0)}>&gt;</button>
+                onClick={(event) => step(1, event.detail === 0)}>&gt;</button>
             </nav>
           </div>
         </div>
