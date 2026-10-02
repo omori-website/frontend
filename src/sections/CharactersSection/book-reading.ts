@@ -40,3 +40,23 @@ export function readingStep(progress: number, direction: number, mobile: boolean
   readingPose(progress, mobile, pose)
   return Math.max(0, Math.min(7, Math.round(pose.page) + direction))
 }
+
+export function advanceFlip(state: { page: number; from: number; to: number; started: number; active: boolean }, target: number, time: number, ready: boolean, instant: boolean) {
+  const destination = Math.max(0, Math.min(7, Math.round(target)))
+  if (instant) {
+    state.page = state.from = state.to = destination
+    state.active = false
+    return
+  }
+  if (!state.active && ready && state.page !== destination) {
+    state.from = state.page
+    state.to = state.page + Math.sign(destination - state.page)
+    state.started = time
+    state.active = true
+  }
+  if (state.active) {
+    const t = Math.max(0, Math.min(1, (time - state.started) / 750))
+    state.page = state.from + (state.to - state.from) * t * t * (3 - 2 * t)
+    if (t === 1) state.active = false
+  }
+}

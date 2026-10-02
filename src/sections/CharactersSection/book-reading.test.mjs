@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readingPose, readingStep } from './book-reading.ts'
+import { advanceFlip, readingPose, readingStep } from './book-reading.ts'
 const pose = { page: 0, x: 0, zoom: 0 }
 for (let page = 1; page <= 6; page++) {
   readingPose(page, true, pose)
@@ -28,3 +28,19 @@ assert.deepEqual(pose, { page: 2.3, x: 0, zoom: 0 })
 readingPose(8, true, pose)
 assert.deepEqual(pose, { page: 8, x: 0, zoom: 0 })
 console.log('PASS: left/right order, pullback before flipping, reverse steps, desktop, back cover')
+const flip = { page: 1, from: 1, to: 1, started: 0, active: false }
+advanceFlip(flip, 6, 0, false, false)
+assert.equal(flip.page, 1, 'Wait for camera pullback')
+advanceFlip(flip, 6, 100, true, false)
+advanceFlip(flip, 6, 475, true, false)
+assert.equal(flip.page, 1.5, 'Fast swipe cannot accelerate a flip')
+advanceFlip(flip, 0, 849, true, false)
+assert.ok(flip.page < 2 && flip.active, 'Reversal cannot truncate the current flip')
+advanceFlip(flip, 0, 850, true, false)
+assert.equal(flip.page, 2)
+advanceFlip(flip, 0, 900, true, false)
+advanceFlip(flip, 0, 1650, true, false)
+assert.equal(flip.page, 1, 'Reverse flip also takes 750ms')
+advanceFlip(flip, 6, 1651, true, true)
+assert.equal(flip.page, 6, 'Reduced motion skips queued flips')
+console.log('PASS: fixed 750ms flips, pullback gate, reversal, immediate navigation')

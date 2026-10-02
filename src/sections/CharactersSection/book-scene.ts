@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { bookTime, pickPolaroid, swayPolaroid } from './book-interaction'
 import type { Polaroid } from './book-interaction'
-import { readingPose } from './book-reading'
+import { advanceFlip, readingPose } from './book-reading'
 import bookUrl from '../../assets/characters-section/omori_characters_book.glb?url'
 import gameplayBackground from '../../assets/gameplay-news-section/gameplay-news-bg.webp'
 import hero1 from '../../assets/kel-and-hero/hero1.png'
@@ -171,6 +171,7 @@ export function mountBook(container: HTMLDivElement, options: {
   const reading = { page: 0, x: 0, zoom: 0 }
   const scrollReading = { page: 0, x: 0, zoom: 0 }
   let transitionComplete = false
+  const flip = { page: 0, from: 0, to: 0, started: 0, active: false }
 
   function resize() {
     const width = container.clientWidth
@@ -256,22 +257,26 @@ export function mountBook(container: HTMLDivElement, options: {
       )
     }
     const mobile = container.clientWidth <= 640 && camera.aspect < 1
-    if (mobile && options.flipOnly.current) {
-      reading.zoom = instant ? 0 : THREE.MathUtils.lerp(reading.zoom, 0, smoothing)
-      reading.x = instant ? 0 : THREE.MathUtils.lerp(reading.x, 0, smoothing)
-      if (reading.zoom < 0.02) {
-        reading.page = instant ? options.target.current : THREE.MathUtils.lerp(reading.page, options.target.current, smoothing)
-      }
+    readingPose(progress, mobile, scrollReading)
+    if (mobile) {
+      const targetPage = options.flipOnly.current ? options.target.current : scrollReading.page
+      const pending = !instant && (flip.active || Math.round(targetPage) !== flip.page)
+      const overview = options.flipOnly.current || pending
+      const targetZoom = overview ? 0 : scrollReading.zoom
+      const targetX = overview ? 0 : scrollReading.x
+      reading.zoom = instant ? targetZoom : THREE.MathUtils.lerp(reading.zoom, targetZoom, smoothing)
+      reading.x = instant ? targetX : THREE.MathUtils.lerp(reading.x, targetX, smoothing)
+      advanceFlip(flip, targetPage, time, reading.zoom < 0.02, instant)
+      reading.page = flip.page
     } else {
-      readingPose(progress, mobile, scrollReading)
       reading.page = scrollReading.page
-      reading.x = instant || !mobile ? scrollReading.x : THREE.MathUtils.lerp(reading.x, scrollReading.x, smoothing)
-      reading.zoom = instant || !mobile ? scrollReading.zoom : THREE.MathUtils.lerp(reading.zoom, scrollReading.zoom, smoothing)
+      reading.x = reading.zoom = 0
+      advanceFlip(flip, reading.page, time, true, true)
     }
     const animationTime = bookTime(reading.page)
     const poseChanged = animationTime !== previousTime
     if (model && mixer && poseChanged) {
-      mixer.setTime(animationTime) // Scroll owns time; never automatically advance this mixer.
+      mixer.setTime(animationTime) // Mobile flips use a clock; desktop remains scroll-scrubbed.
       const tiltX = pivot.rotation.x
       const tiltZ = pivot.rotation.z
       pivot.rotation.set(0, 0, 0)
@@ -284,7 +289,7 @@ export function mountBook(container: HTMLDivElement, options: {
     }
     const oldX = pivot.rotation.x
     const oldZ = pivot.rotation.z
-    const reveal = THREE.MathUtils.clamp(progress - 7, 0, 1)
+    const reveal = mobile && (flip.active || flip.page < 7) ? 0 : THREE.MathUtils.clamp(progress - 7, 0, 1)
     const zoom = reducedMotion.matches ? (reveal >= 1 ? 1 : 0) : reveal
     // Move close enough that the narrower cover dimension exceeds every viewport edge.
     const coverDistance = Math.min(0.78 / camera.aspect, 1.05) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
@@ -296,7 +301,7 @@ export function mountBook(container: HTMLDivElement, options: {
     const tilt = !reducedMotion.matches && !options.photoOpen.current && finePointer.matches
     pivot.rotation.x += ((tilt ? pointer.y * 0.14 * (1 - reveal) : 0) - pivot.rotation.x) * smoothing
     pivot.rotation.z += ((tilt ? -pointer.x * 0.16 * (1 - reveal) : 0) - pivot.rotation.z) * smoothing
-    const complete = !!model && progress >= 7.995
+    const complete = !!model && reveal >= 0.995
     if (complete !== transitionComplete) {
       transitionComplete = complete
       options.onTransition(complete)
