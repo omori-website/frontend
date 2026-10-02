@@ -398,6 +398,8 @@ export function mountBook(container: HTMLDivElement, options: {
         // Alpha-test the visible card so transparent margins neither pick nor hide pages.
         material.alphaTest = 0.5
         material.transparent = false
+        // GLTFLoader disables depth writes for the exported BLEND material.
+        material.depthWrite = true
         material.needsUpdate = true
         cards.set(object, {
           mesh: object, position: object.position.clone(), quaternion: object.quaternion.clone(),

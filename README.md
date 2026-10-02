@@ -132,6 +132,8 @@ Click Start once the check reaches 100% to complete the loading/reveal check.
 
 Polaroids enlarge by 3% on pointer hover and ease back on mouse-out, alongside the existing sway. Reduced-motion users get the same scale feedback without interpolation.
 
+Polaroids restore depth writing when switching exported GLB `BLEND` materials to opaque alpha-tested cards. Without this, a later-drawn page can erase a visible card while its geometry remains clickable. Run the default export of `src/sections/CharactersSection/book-depth-check.mjs` with a browser page on the dev server to verify actual card pixels survive adverse page draw order.
+
 Printed description/profile textures use the GPU's maximum supported anisotropic filtering. The deployment GLB stores native 590×780 pixel lettering and a cover capped at 1024px, reducing decoded book textures from 210.2 MiB to 31.7 MiB. Embedded textures use core PNG rather than requiring `EXT_texture_webp`; Polaroid pixels, geometry, and animations are preserved.
 Regenerate the portable GLB with `uv run --with pillow characters/book/optimize_book.py` after exporting. A missing gameplay background no longer blocks the intro or book; the exported green back cover remains visible until the background loads. GPU context loss shows the existing reload message and disables page controls; restoration re-enables the loaded book. Run `src/sections/CharactersSection/book-deployment-check.mjs` with a browser page showing the book to check context loss and recovery.
 
@@ -174,7 +176,9 @@ coverage as the phone viewport expands and contracts.
 The four gameplay cards use animated WebP assets in `src/assets/gameplay-news-section`.
 Idle cards show extracted `*-still.webp` first frames in grayscale. Fine-pointer hover
 mounts the matching color loop; leaving the card, scrolling it off-screen, or hiding
-the tab removes playback. Touch and reduced-motion users retain static previews.
+the tab removes playback. On touch devices, a card crossing the viewport's center
+line plays the same color loop; scrolling past that card stops it. Resizing recalculates
+the center line. Reduced-motion users retain static previews.
 Both stills and loops fill the fixed media frame with `object-fit: cover`, preserving
 their aspect ratio and cropping excess edges without changing card height.
 Fight Your Fears and Solve Mysteries use `*-cropped.webp` loops to remove baked-in
@@ -184,6 +188,9 @@ Regenerate each still after replacing its loop with
 On the gameplay screen, run
 `(await import('/src/sections/GameplayNewsSection/gameplay-check.js')).checkGameplay()`
 to verify frame coverage, color state, and genuinely static idle assets.
+With touch emulation and motion enabled, run
+`(await import('/src/sections/GameplayNewsSection/gameplay-check.js')).checkMobileGameplay()`
+to scroll through all four cards and verify exclusive center activation and off-screen cleanup.
 
 ## News carousel
 
@@ -239,9 +246,14 @@ The footer follows the news carousel and uses the supplied artwork in
 `src/assets/footer`. `omori-wordmark.png` is the transparent wordmark extracted
 from the supplied footer reference. Navigation links target the existing page
 sections; Home restarts the opening sequence and the Steam badge opens the game
-store page. Below 640px, branding, navigation, and character artwork stack.
-On mobile, the torn paper texture scales across the full stacked footer height,
-preserving its paper color throughout without a separate white fill or color seam.
+store page. At 768px and below, branding, navigation, and character artwork stack.
+The compact mobile stack uses 216px top clearance to keep branding below the
+transparent torn edge, with a 180px wordmark, a 150px Steam badge, and character
+artwork capped at 180px.
+The paper texture scales across the full footer height without a separate fill or seam.
+Run `src/sections/FooterSection/footer-check.mjs` with a browser page after character
+entry to check content containment, opaque paper behind branding, and mobile height
+at widths from 320px through 1440px.
 The footer is the final scroll boundary; root overscroll is disabled to prevent
 browser bounce from exposing space beyond it.
 

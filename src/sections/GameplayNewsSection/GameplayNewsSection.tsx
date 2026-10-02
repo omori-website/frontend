@@ -47,18 +47,31 @@ function GameplayPanel({ title, description, still, loop }: typeof gameplay[numb
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const hover = window.matchMedia('(hover: hover) and (pointer: fine)')
     const stop = () => setPlaying(false)
-    const onVisibilityChange = () => { if (document.hidden) stop() }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) stop()
-    })
-    observer.observe(panel)
-    motion.addEventListener('change', stop)
-    hover.addEventListener('change', stop)
+    let observer: IntersectionObserver
+    const observe = () => {
+      observer?.disconnect()
+      stop()
+      const inset = Math.max(0, (window.innerHeight - 2) / 2)
+      observer = new IntersectionObserver(([entry]) => {
+        if (hover.matches) {
+          if (!entry.isIntersecting) stop()
+        } else {
+          setPlaying(entry.isIntersecting && !motion.matches && !document.hidden)
+        }
+      }, { rootMargin: hover.matches ? '0px' : `-${inset}px 0px -${inset}px 0px` })
+      observer.observe(panel)
+    }
+    const onVisibilityChange = () => { if (document.hidden) stop(); else observe() }
+    observe()
+    motion.addEventListener('change', observe)
+    hover.addEventListener('change', observe)
+    window.addEventListener('resize', observe)
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => {
       observer.disconnect()
-      motion.removeEventListener('change', stop)
-      hover.removeEventListener('change', stop)
+      motion.removeEventListener('change', observe)
+      hover.removeEventListener('change', observe)
+      window.removeEventListener('resize', observe)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
@@ -69,8 +82,8 @@ function GameplayPanel({ title, description, still, loop }: typeof gameplay[numb
         if (window.matchMedia('(hover: hover) and (pointer: fine)').matches
           && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) setPlaying(true)
       }}
-      onPointerLeave={() => setPlaying(false)}
-      onPointerCancel={() => setPlaying(false)}>
+      onPointerLeave={() => { if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setPlaying(false) }}
+      onPointerCancel={() => { if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setPlaying(false) }}>
       <div className={`gameplay-media${playing ? ' is-playing' : ''}`}>
         <img src={still} alt={`${title} gameplay`} loading="lazy" />
         {playing && <img className="gameplay-animation" src={loop} alt="" />}

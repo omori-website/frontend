@@ -35,18 +35,19 @@
   .footer-steam { width: 190px; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .site-footer {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
-    gap: 32px;
-    padding: 150px 24px 0;
+    gap: 20px;
+    padding: 216px 24px 0;
     text-align: center;
   }
-  .footer-brand { padding: 0; }
-  .footer-logo { width: 220px; margin: auto; }
-  .footer-brand p { margin: 16px 0 28px; font-size: 22px; }
+  .footer-brand { min-width: 0; max-width: 100%; padding: 0; }
+  .footer-logo { width: min(180px, 100%); margin: auto; }
+  .footer-brand p { max-width: 28ch; margin: 12px 0 20px; font-size: 20px; line-height: 1.2; }
+  .footer-steam { width: 150px; }
   .footer-navigation { grid-row: 2; justify-content: center; gap: 4px 18px; padding: 0; }
-  .footer-navigation a { font-size: 26px; }
-  .footer-omori { width: min(70vw, 313px); }
+  .footer-navigation a { font-size: 24px; }
+  .footer-omori { width: min(50vw, 180px); }
 }
